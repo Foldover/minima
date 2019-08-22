@@ -2,6 +2,7 @@
     import {onMount} from 'svelte';
     import {sprites} from "../../stores/sprites";
     import SpriteSlots from './SpriteSlots.svelte';
+    import {RGBA, SpriteCanvas} from "../../services/spriteCanvas";
 
     let spriteEditorCanvas;
     let spriteEditorContext;
@@ -19,23 +20,21 @@
     let activePenMode = penModes.draw;
 
     onMount(() => {
-        spriteEditorCanvas = document.querySelector('#sprite-editor-canvas');
-        pixelsPerUnit = spriteEditorCanvas.width / spriteEditorResolution;
-        spriteEditorCanvas.addEventListener('click', (clickEvent) => {
+        spriteEditorCanvas = new SpriteCanvas(document.querySelector('#sprite-editor-canvas'));
+        spriteEditorCanvas.onClick((clickEvent) => {
             handleCanvasMouseDown(clickEvent);
         });
-        spriteEditorCanvas.addEventListener('mousedown', (event) => {
+        spriteEditorCanvas.onMouseDown((event) => {
             isMouseDown = true;
         });
-        spriteEditorCanvas.addEventListener('mousemove', (event) => {
+        spriteEditorCanvas.onMouseMove((event) => {
             if (isMouseDown) {
                 handleCanvasMouseDown(event);
             }
         });
-        spriteEditorCanvas.addEventListener('mouseup', (event) => {
+        spriteEditorCanvas.onMouseUp((event) => {
             isMouseDown = false;
         });
-        spriteEditorContext = spriteEditorCanvas.getContext('2d');
         paintAll();
     });
 
@@ -44,46 +43,34 @@
         const index = canvasCoordinatesToPixelIndex(canvasX, canvasY);
 
         if (activePenMode === penModes.draw) {
-            setPixelColor(index, 'blue');
-            spriteEditorContext.fillStyle = spriteStore.slots[spriteStore.selectedSlot].pixels[index];
+            setPixelColor(index, RGBA.white());
             const {x, y} = pixelIndexToCanvasCoordinates(index);
-            spriteEditorContext.fillRect(x, y, pixelsPerUnit, pixelsPerUnit)
+            spriteEditorCanvas.drawRect(x, y, spriteStore.slots[spriteStore.selectedSlot].pixels[index]);
         } else if (activePenMode === penModes.erase) {
-            setPixelColor(index, 'white');
-            spriteEditorContext.fillStyle = spriteStore.slots[spriteStore.selectedSlot].pixels[index];
+            setPixelColor(index, RGBA.black());
             const {x, y} = pixelIndexToCanvasCoordinates(index);
-            spriteEditorContext.fillRect(x, y, pixelsPerUnit, pixelsPerUnit)
+            spriteEditorCanvas.drawRect(x, y, spriteStore.slots[spriteStore.selectedSlot].pixels[index]);
         }
-    }
-    
-    function clear() {
-        spriteEditorContext.fillStyle = 'white';
-        spriteEditorContext.fillRect(0, 0, spriteEditorCanvas.width, spriteEditorCanvas.height);
-    }
-
-    function drawRect(x, y, color) {
-        spriteEditorContext.fillStyle = color;
-        spriteEditorContext.fillRect(x, y, pixelsPerUnit, pixelsPerUnit);
     }
 
     function paintAll() {
         spriteStore.slots[spriteStore.selectedSlot].pixels.forEach((color, index) => {
             const {x, y} = {
-                x: (index % spriteEditorResolution) * pixelsPerUnit,
-                y: (Math.floor(index / spriteEditorResolution) % spriteEditorResolution) * pixelsPerUnit,
+                x: (index % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
+                y: (Math.floor(index / spriteEditorCanvas.resolution) % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
             };
-            drawRect(x, y, color);
+            spriteEditorCanvas.drawRect(x, y, color);
         })
     }
     
     function canvasCoordinatesToPixelIndex(x, y) {
-        return Math.floor(x / pixelsPerUnit) + Math.floor(y / pixelsPerUnit) * Math.floor(spriteEditorCanvas.width / pixelsPerUnit);
+        return spriteEditorCanvas.canvasCoordinatesToPixelIndex(x, y);
     }
     
     function pixelIndexToCanvasCoordinates(index) {
         return {
-            x: (index % spriteEditorResolution) * pixelsPerUnit,
-            y: (Math.floor(index / spriteEditorResolution) % spriteEditorResolution) * pixelsPerUnit,
+            x: (index % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
+            y: (Math.floor(index / spriteEditorCanvas.resolution) % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
         }
     }
     
@@ -95,10 +82,11 @@
     }
     
     function getCanvasCoordinates(e) {
-        const rect = spriteEditorCanvas.getBoundingClientRect();
-        const canvasX = Math.floor(e.clientX - rect.left);
-        const canvasY = Math.floor(e.clientY - rect.top);
-        return {canvasX, canvasY};
+        const coords = spriteEditorCanvas.getCanvasCoordinates(e.clientX, e.clientY);
+        return {
+            canvasX: coords.x,
+            canvasY: coords.y,
+        }
     }
 
     function setPenMode(mode) {

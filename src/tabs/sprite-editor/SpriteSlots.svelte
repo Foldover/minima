@@ -1,12 +1,9 @@
-
-<script>
+<script xmlns:on="http://www.w3.org/1999/xhtml">
     import { sprites } from "../../stores/sprites";
     import {createEventDispatcher} from 'svelte';
 
     let spriteStore;
-
     const dispatch = createEventDispatcher();
-
     const unsubscribeSpritesStore = sprites.subscribe((sprite) => {
         spriteStore = sprite;
     });

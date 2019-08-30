@@ -5,9 +5,6 @@
     import {RGBA, SpriteCanvas} from "../../services/spriteCanvas";
 
     let spriteEditorCanvas;
-    let spriteEditorContext;
-    let spriteEditorResolution = 16;
-    let pixelsPerUnit;
     export let spriteStore;
     let spritesStoreUnsubscribe = sprites.subscribe((sprite) => {
         spriteStore = sprite;

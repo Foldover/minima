@@ -63,6 +63,23 @@ export class SpriteCanvas {
         this.clear();
     }
 
+    static CanvasFromData(data) {
+        const size = Math.sqrt(data.length);
+        const result = new SpriteCanvas(document.createElement('canvas'), 1, RGBA.black(), size, size);
+        data.forEach((d, i) => {
+            const x = (i % size);
+            const y = Math.floor(i / size);
+            result.drawRect(x, y, d[i].toCSSValue());
+        });
+        return result;
+    }
+
+    toImage() {
+        const img = new Image();
+        img.src = this.element.toDataURL('image/png');
+        return img;
+    }
+
     onClick(cb) {
         this.clickCallbacks.push(cb);
     }
@@ -77,6 +94,13 @@ export class SpriteCanvas {
 
     onMouseUp(cb) {
         this.mouseUpCallbacks.push(cb);
+    }
+
+    pixelIndexToCanvasCoordinates(index) {
+        return {
+            x: (index % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
+            y: (Math.floor(index / spriteEditorCanvas.resolution) % spriteEditorCanvas.resolution) * spriteEditorCanvas.pixelsPerResolutionUnit,
+        }
     }
 
     getCanvasCoordinates(_x, _y) {
@@ -101,7 +125,6 @@ export class SpriteCanvas {
     }
 
     drawRect(x, y, color) {
-        console.log(x, y);
         this.ctx.fillStyle = color.toCSSValue();
         this.ctx.fillRect(x, y, this.pixelsPerResolutionUnit, this.pixelsPerResolutionUnit);
     }
